@@ -15,7 +15,7 @@ import upload from "../../lib/upload";
 import { format } from "timeago.js";
 
 const Chat = () => {
-  const [chat, setChat] = useState();
+  const [chat, setChat] = useState({ messages: [] }); // Initialize chat state with an empty object
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [img, setImg] = useState({
@@ -101,13 +101,13 @@ const Chat = () => {
       });
     } catch (err) {
       console.log(err);
-    } finally{
-    setImg({
-      file: null,
-      url: "",
-    });
+    } finally {
+      setImg({
+        file: null,
+        url: "",
+      });
 
-    setText("");
+      setText("");
     }
   };
 

@@ -39,41 +39,51 @@ const AddUser = () => {
       console.log(err);
     }
   };
-
   const handleAdd = async () => {
     const chatRef = collection(db, "chats");
     const userChatsRef = collection(db, "userchats");
-
+  
     try {
-      const newChatRef = doc(chatRef);
-
-      await setDoc(newChatRef, {
-        createdAt: serverTimestamp(),
-        messages: [],
-      });
-
-      await updateDoc(doc(userChatsRef, user.id), {
-        chats: arrayUnion({
-          chatId: newChatRef.id,
-          lastMessage: "",
-          receiverId: currentUser.id,
-          updatedAt: Date.now(),
-        }),
-      });
-
-      await updateDoc(doc(userChatsRef, currentUser.id), {
-        chats: arrayUnion({
-          chatId: newChatRef.id,
-          lastMessage: "",
-          receiverId: user.id,
-          updatedAt: Date.now(),
-        }),
-      });
+      // Create a consistent chat ID based on the IDs of the two users
+      const chatId = [currentUser.id, user.id].sort().join("-");
+  
+      // Check if the chat already exists
+      const chatDoc = await getDoc(doc(chatRef, chatId));
+  
+      if (!chatDoc.exists()) {
+        // Chat doesn't exist, create a new chat
+        await setDoc(doc(chatRef, chatId), {
+          createdAt: serverTimestamp(),
+          messages: [],
+        });
+      }
+  
+      // Update userChats for both users if the chat ID doesn't already exist in their chats list
+      const updateUserChats = async (userId, otherUserId) => {
+        const userChatsSnapshot = await getDoc(doc(userChatsRef, userId));
+        const userChatsData = userChatsSnapshot.data();
+  
+        if (!userChatsData.chats.some(chat => chat.chatId === chatId)) {
+          await updateDoc(doc(userChatsRef, userId), {
+            chats: arrayUnion({
+              chatId,
+              lastMessage: "",
+              receiverId: otherUserId,
+              updatedAt: Date.now(),
+            }),
+          });
+        }
+      };
+  
+      await updateUserChats(currentUser.id, user.id);
+      await updateUserChats(user.id, currentUser.id);
     } catch (err) {
       console.log(err);
     }
   };
+  
 
+ 
   return (
     <div className="addUser">
       <form onSubmit={handleSearch}>
@@ -94,3 +104,37 @@ const AddUser = () => {
 };
 
 export default AddUser;
+
+// const handleAdd = async () => {
+//   const chatRef = collection(db, "chats");
+//   const userChatsRef = collection(db, "userchats");
+
+//   try {
+//     const newChatRef = doc(chatRef);
+
+//     await setDoc(newChatRef, {
+//       createdAt: serverTimestamp(),
+//       messages: [],
+//     });
+
+//     await updateDoc(doc(userChatsRef, user.id), {
+//       chats: arrayUnion({
+//         chatId: newChatRef.id,
+//         lastMessage: "",
+//         receiverId: currentUser.id,
+//         updatedAt: Date.now(),
+//       }),
+//     });
+
+//     await updateDoc(doc(userChatsRef, currentUser.id), {
+//       chats: arrayUnion({
+//         chatId: newChatRef.id,
+//         lastMessage: "",
+//         receiverId: user.id,
+//         updatedAt: Date.now(),
+//       }),
+//     });
+//   } catch (err) {
+//     console.log(err);
+//   }
+// };
